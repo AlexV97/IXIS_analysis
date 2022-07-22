@@ -20,6 +20,14 @@ ecomDataSessionCounts_byMonth = read_ecomDataSessionCounts\
     .groupby([read_ecomDataSessionCounts['dim_date'].dt.year, read_ecomDataSessionCounts['dim_date'].dt.month, read_ecomDataSessionCounts['dim_deviceCategory']])\
     [['sessions', 'transactions', 'QTY']].sum()
 ecomDataSessionCounts_byMonth['ECR'] = ecomDataSessionCounts_byMonth['transactions']/ecomDataSessionCounts_byMonth['sessions']
+ecomDataSessionCounts_byMonth['QtyPerTransaction'] = ecomDataSessionCounts_byMonth['QTY']/ecomDataSessionCounts_byMonth['transactions']
+
+### Transactions per device type by month - reverse order grouping vs. previous
+ecomDataSessionCounts_byDevMonth = read_ecomDataSessionCounts\
+    .groupby([read_ecomDataSessionCounts['dim_deviceCategory'], read_ecomDataSessionCounts['dim_date'].dt.year, read_ecomDataSessionCounts['dim_date'].dt.month])\
+    [['sessions', 'transactions', 'QTY']].sum()
+ecomDataSessionCounts_byDevMonth['ECR'] = ecomDataSessionCounts_byDevMonth['transactions']/ecomDataSessionCounts_byDevMonth['sessions']
+ecomDataSessionCounts_byDevMonth['QtyPerTransaction'] = ecomDataSessionCounts_byDevMonth['QTY']/ecomDataSessionCounts_byDevMonth['transactions']
 
 ### Month Over Month Comparison
 ecomDataSessionCounts_monthOverMonth = read_ecomDataSessionCounts\
@@ -27,6 +35,7 @@ ecomDataSessionCounts_monthOverMonth = read_ecomDataSessionCounts\
     [['dim_date', 'dim_browser', 'sessions', 'transactions', 'QTY']].sum()
 
 ecomDataSessionCounts_monthOverMonth['ECR'] = ecomDataSessionCounts_monthOverMonth['transactions']/ecomDataSessionCounts_monthOverMonth['sessions']
+ecomDataSessionCounts_monthOverMonth['QtyPerTransaction'] = ecomDataSessionCounts_monthOverMonth['QTY']/ecomDataSessionCounts_monthOverMonth['transactions']
 
 monthOverMonth = pd.merge(read_addsToCart, ecomDataSessionCounts_monthOverMonth, how='outer',\
                           left_on = ['dim_year','dim_month'], \
@@ -44,11 +53,19 @@ monthOverMonth_transposed = monthOverMonth_diff.T
 monthOverMonth_transposed['abs_diff'] = last2Months_diff
 monthOverMonth_transposed['rel_diff'] = last2Months_diff_rel
 
+# clean up of meaningless cells
+monthOverMonth_transposed.at['dim_year', 'abs_diff'] = ""
+monthOverMonth_transposed.at['dim_year', 'rel_diff'] = ""
+monthOverMonth_transposed.at['dim_month', 'abs_diff'] = ""
+monthOverMonth_transposed.at['dim_month', 'rel_diff'] = ""
+
 # Writing Excel Report
 from xlsxwriter.utility import xl_cell_to_rowcol,xl_range
 with pd.ExcelWriter("DataAnalyst_Ecom_data_Report.xlsx", engine='xlsxwriter') as writer:
      workbook = writer.book
      ecomDataSessionCounts_byMonth.to_excel(writer, sheet_name= "PerMonthPerDevice", index=True)
+     ecomDataSessionCounts_byDevMonth.to_excel(writer, sheet_name= "PerDevicePerMonth", index=True)
      monthOverMonth_transposed.to_excel(writer, sheet_name= "MonthOverMonthComparison", index=True)
+
 
 print("Wrote Excel Report. analysis.py completed")
