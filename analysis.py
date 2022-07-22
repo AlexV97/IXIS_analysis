@@ -2,10 +2,6 @@ import pandas as pd
 
 
 read_addsToCart = pd.read_csv(r'DataAnalyst_Ecom_data_addsToCart.csv', header=0)
-#dim_year,dim_month
-#read_addsToCart['dim_date'] = pd.to_datetime([read_addsToCart['dim_year'], read_addsToCart['dim_month']])
-print("read_addsToCart=", read_addsToCart)
-print("read_addsToCart.columns=", read_addsToCart.columns)
 
 read_ecomDataSessionCounts = pd.read_csv(r'DataAnalyst_Ecom_data_sessionCounts.csv', header=0)
 
@@ -32,19 +28,27 @@ ecomDataSessionCounts_monthOverMonth = read_ecomDataSessionCounts\
 
 ecomDataSessionCounts_monthOverMonth['ECR'] = ecomDataSessionCounts_monthOverMonth['transactions']/ecomDataSessionCounts_monthOverMonth['sessions']
 
-monthOverMonth = pd.merge(ecomDataSessionCounts_monthOverMonth, read_addsToCart, how='inner',\
-                          left_on= 'dim_month_sc', \
-                          right_on= 'dim_month')
+monthOverMonth = pd.merge(read_addsToCart, ecomDataSessionCounts_monthOverMonth, how='outer',\
+                          left_on = ['dim_year','dim_month'], \
+                          right_on= ['dim_year_sc','dim_month_sc'] )
 
-monthOverMonth_transposed = monthOverMonth.T
+last2Months_diff = monthOverMonth.iloc[-1]-monthOverMonth.iloc[-2]
+last2Months_diff_rel = last2Months_diff / monthOverMonth.iloc[-2]
 
-print("monthOverMonth=", monthOverMonth)
+# Month Over Month - last 2 months
+monthOverMonth_diff = monthOverMonth.tail( n=2 )
 
+# transposing for ease of use in Escel report
+monthOverMonth_transposed = monthOverMonth_diff.T
+# adding columns for calculation/comparison of last 2 months: absolute difference and relative difference
+monthOverMonth_transposed['abs_diff'] = last2Months_diff
+monthOverMonth_transposed['rel_diff'] = last2Months_diff_rel
 
+# Writing Excel Report
 from xlsxwriter.utility import xl_cell_to_rowcol,xl_range
 with pd.ExcelWriter("DataAnalyst_Ecom_data_Report.xlsx", engine='xlsxwriter') as writer:
-    workbook = writer.book
-    ecomDataSessionCounts_byMonth.to_excel(writer, sheet_name= "PerMonthPerDevice", index=True)
-    monthOverMonth_transposed.to_excel(writer, sheet_name= "MonthOverMonthComparison", index=True)
+     workbook = writer.book
+     ecomDataSessionCounts_byMonth.to_excel(writer, sheet_name= "PerMonthPerDevice", index=True)
+     monthOverMonth_transposed.to_excel(writer, sheet_name= "MonthOverMonthComparison", index=True)
 
-print("Wrote Excel Report")
+print("Wrote Excel Report. analysis.py completed")
