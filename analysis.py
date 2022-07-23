@@ -62,6 +62,7 @@ ecomDataSessionCounts_byMonth.columns = [ 'sessions', 'transactions', 'quantity'
                                          'ECR', 'quantity per transaction']
 ecomDataSessionCounts_byDevMonth.columns = [ 'sessions', 'transactions', 'quantity',\
                                          'ECR', 'quantity per transaction']
+monthOverMonth_transposed.columns = [ 'prior month', 'last month', 'absolute difference', 'relative difference']
 
 # Writing Excel Report
 from xlsxwriter.utility import xl_cell_to_rowcol,xl_range
